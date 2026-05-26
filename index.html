@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="format-detection" content="telephone=no">
+<title>随身小扇子</title>
+<style>
+  :root {
+    --bg: #f5f0e8;
+    --text: #5d4037;
+    --hot: #ff6b35;
+    --cool: #4fc3f7;
+    --freeze: #81d4fa;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg);
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    overflow: hidden;
+  }
+  h2 {
+    color: var(--text);
+    font-weight: 400;
+    font-size: 1rem;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+  }
+  h5 {
+    color: #999;
+    font-weight: 400;
+    font-size: 0.75rem;
+    margin-bottom: 0.6rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  h5 svg { width:16px; height:16px; fill:#999; }
+
+  /* 温度显示 */
+  .temp-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    margin-bottom: 0.4rem;
+  }
+  .temp-number {
+    font-size: 3.2rem;
+    font-weight: 700;
+    font-family: "Georgia", "Times New Roman", serif;
+    color: var(--hot);
+    line-height: 1;
+    transition: color 0.4s;
+    text-shadow: 0 2px 8px rgba(255,107,53,0.2);
+  }
+  .temp-number.cool  { color: var(--cool);  text-shadow: 0 2px 8px rgba(79,195,247,0.2); }
+  .temp-number.cold  { color: #29b6f6; text-shadow: 0 2px 12px rgba(41,182,246,0.4); }
+  .temp-number.freeze { color: var(--freeze); text-shadow: 0 2px 16px rgba(129,212,250,0.6); animation: shiver 0.3s ease-in-out infinite; }
+  @keyframes shiver {
+    0%,100% { transform: translateX(0); }
+    25%     { transform: translateX(-2px); }
+    75%     { transform: translateX(2px); }
+  }
+  .temp-unit {
+    font-size: 1.2rem;
+    color: #aaa;
+    align-self: flex-start;
+    margin-top: 0.3rem;
+  }
+
+  /* 扇子容器 */
+  .fan-wrapper {
+    position: relative;
+    width: 260px;
+    height: 320px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.08s;
+  }
+  .fan-wrapper:active { transform: scale(0.95); }
+
+  /* 扇子主体 */
+  .fan {
+    position: relative;
+    transform-origin: 50% 82%;
+    transition: transform 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+    filter: drop-shadow(0 6px 16px rgba(0,0,0,0.15));
+  }
+  .fan.waving { animation: wave 0.55s cubic-bezier(0.22, 0.61, 0.36, 1); }
+
+  @keyframes wave {
+    0%   { transform: rotate(0deg); }
+    18%  { transform: rotate(-30deg); }
+    38%  { transform: rotate(25deg); }
+    58%  { transform: rotate(-16deg); }
+    78%  { transform: rotate(8deg); }
+    100% { transform: rotate(0deg); }
+  }
+
+  .fan-svg {
+    width: 180px;
+    height: 240px;
+  }
+
+  /* 风效粒子 */
+  .wind-particles {
+    position: absolute;
+    top: 28%;
+    right: -10px;
+    pointer-events: none;
+  }
+  .wind-particle {
+    position: absolute;
+    width: 3px;
+    height: 26px;
+    background: linear-gradient(to right, rgba(150,200,230,0.5), transparent);
+    border-radius: 2px;
+    opacity: 0;
+  }
+  .wind-particle.blowing {
+    animation: blow 0.7s ease-out forwards;
+  }
+  .wind-particle:nth-child(1) { top:0px;  animation-delay:0s; }
+  .wind-particle:nth-child(2) { top:18px; animation-delay:0.05s; }
+  .wind-particle:nth-child(3) { top:36px; animation-delay:0.1s; }
+  .wind-particle:nth-child(4) { top:54px; animation-delay:0.04s; }
+  .wind-particle:nth-child(5) { top:72px; animation-delay:0.09s; }
+
+  @keyframes blow {
+    0%   { opacity:0.6; transform: translateX(0) scaleX(1); }
+    100% { opacity:0;   transform: translateX(110px) scaleX(3.5); }
+  }
+
+  /* 计数 */
+  .counter {
+    margin-top: 0.6rem;
+    color: #bbb;
+    font-size: 0.7rem;
+    letter-spacing: 1px;
+  }
+  .counter b {
+    font-weight: 600;
+    color: #e07b5a;
+    font-size: 1.2rem;
+    font-family: "Georgia", serif;
+  }
+
+  /* 底部 */
+  .bottom-link {
+    position: fixed;
+    bottom: 2rem;
+    color: #ccc;
+    font-size: 0.65rem;
+    text-decoration: none;
+  }
+
+  /* 提示浮层 */
+  .toast {
+    position: fixed;
+    top: 22%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    background: rgba(0,0,0,0.8);
+    color: #fff;
+    padding: 10px 22px;
+    border-radius: 22px;
+    font-size: 0.85rem;
+    pointer-events: none;
+    transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 10;
+    white-space: nowrap;
+    text-align: center;
+  }
+  .toast.show { transform: translate(-50%, -50%) scale(1); }
+
+  .toast.big {
+    padding: 16px 28px;
+    font-size: 0.95rem;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    box-shadow: 0 8px 32px rgba(102,126,234,0.4);
+    line-height: 1.6;
+  }
+
+  .tap-hint {
+    position: absolute;
+    bottom: -28px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #ccc;
+    font-size: 0.68rem;
+    animation: hintPulse 2s ease-in-out infinite;
+  }
+  @keyframes hintPulse {
+    0%,100% { opacity:0.35; }
+    50%     { opacity:1; }
+  }
+
+  /* 冰霜覆盖动画 */
+  .frost-overlay {
+    position: fixed;
+    top:0;left:0;right:0;bottom:0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.6s;
+    background: radial-gradient(ellipse at center, rgba(200,230,255,0.15) 0%, transparent 70%);
+  }
+  .frost-overlay.show { opacity: 1; }
+
+  /* 雪花 */
+  .snowflake {
+    position: fixed;
+    top: -20px;
+    font-size: 1rem;
+    pointer-events: none;
+    animation: snowfall linear forwards;
+    opacity: 0;
+  }
+  @keyframes snowfall {
+    0%   { opacity:0.8; transform: translateY(0) rotate(0deg); }
+    100% { opacity:0;   transform: translateY(100vh) rotate(360deg); }
+  }
+</style>
+</head>
+<body>
+
+<h2>🌿 随身蒲扇</h2>
+<h5>
+  <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+  扇一下，降一度
+</h5>
+
+<!-- 温度 -->
+<div class="temp-display">
+  <span class="temp-number" id="tempNumber">36</span>
+  <span class="temp-unit">°C</span>
+</div>
+
+<!-- 扇子 -->
+<div class="fan-wrapper" id="fanWrapper">
+  <div class="fan" id="fan">
+    <svg class="fan-svg" viewBox="0 0 200 280" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <!-- 蒲扇面渐变 -->
+        <radialGradient id="leafGrad" cx="0.5" cy="0.45" r="0.5">
+          <stop offset="0%" stop-color="#e8d5b7"/>
+          <stop offset="40%" stop-color="#dcc8a0"/>
+          <stop offset="75%" stop-color="#c9a87c"/>
+          <stop offset="100%" stop-color="#b8956a"/>
+        </radialGradient>
+        <!-- 扇柄渐变 -->
+        <linearGradient id="handleGrad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#5d3620"/>
+          <stop offset="30%" stop-color="#8b5e34"/>
+          <stop offset="60%" stop-color="#a07242"/>
+          <stop offset="100%" stop-color="#5d3620"/>
+        </linearGradient>
+        <!-- 扇面纹理 -->
+        <pattern id="weave" width="8" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <line x1="0" y1="2" x2="8" y2="2" stroke="#b8956a" stroke-width="0.6" opacity="0.3"/>
+          <line x1="0" y1="0" x2="8" y2="0" stroke="#c9a870" stroke-width="0.3" opacity="0.15"/>
+        </pattern>
+      </defs>
+
+      <!-- 蒲扇主体 - 心形圆扇面 -->
+      <g>
+        <!-- 扇面主体 (心形轮廓) -->
+        <path d="M 100 200
+                 C 100 200, 15 170, 10 110
+                 C 5 55, 35 25, 75 25
+                 C 90 25, 100 35, 100 50
+                 C 100 35, 110 25, 125 25
+                 C 165 25, 195 55, 190 110
+                 C 185 170, 100 200, 100 200 Z"
+              fill="url(#leafGrad)" stroke="#a08060" stroke-width="1.5"/>
+        <!-- 编织纹理 -->
+        <path d="M 100 200
+                 C 100 200, 15 170, 10 110
+                 C 5 55, 35 25, 75 25
+                 C 90 25, 100 35, 100 50
+                 C 100 35, 110 25, 125 25
+                 C 165 25, 195 55, 190 110
+                 C 185 170, 100 200, 100 200 Z"
+              fill="url(#weave)" stroke="none"/>
+
+        <!-- 蒲叶主脉(中脊) -->
+        <line x1="100" y1="48" x2="100" y2="200" stroke="#a07850" stroke-width="1.8" opacity="0.6"/>
+
+        <!-- 蒲叶侧脉 -->
+        <path d="M 100 70  Q 70 55,  35 50"  fill="none" stroke="#b08860" stroke-width="0.6" opacity="0.4"/>
+        <path d="M 100 70  Q 130 55, 165 50" fill="none" stroke="#b08860" stroke-width="0.6" opacity="0.4"/>
+        <path d="M 100 90  Q 65 72,  28 72"  fill="none" stroke="#b08860" stroke-width="0.6" opacity="0.4"/>
+        <path d="M 100 90  Q 135 72, 172 72" fill="none" stroke="#b08860" stroke-width="0.6" opacity="0.4"/>
+        <path d="M 100 115 Q 58 95,  22 100" fill="none" stroke="#b08860" stroke-width="0.6" opacity="0.4"/>
+        <path d="M 100 115 Q 142 95, 178 100" fill="none" stroke="#b08860" stroke-width="0.6" opacity="0.4"/>
+        <path d="M 100 145 Q 55 130, 18 140" fill="none" stroke="#b08860" stroke-width="0.6" opacity="0.4"/>
+        <path d="M 100 145 Q 145 130, 182 140" fill="none" stroke="#b08860" stroke-width="0.6" opacity="0.4"/>
+        <path d="M 100 170 Q 60 160, 30 172" fill="none" stroke="#b08860" stroke-width="0.6" opacity="0.35"/>
+        <path d="M 100 170 Q 140 160, 170 172" fill="none" stroke="#b08860" stroke-width="0.6" opacity="0.35"/>
+
+        <!-- 扇面边缘编织包边 -->
+        <path d="M 100 200
+                 C 100 200, 15 170, 10 110
+                 C 5 55, 35 25, 75 25
+                 C 90 25, 100 35, 100 50
+                 C 100 35, 110 25, 125 25
+                 C 165 25, 195 55, 190 110
+                 C 185 170, 100 200, 100 200 Z"
+              fill="none" stroke="#8b6b4a" stroke-width="2.5" opacity="0.5"/>
+
+        <!-- 扇面自然色斑 -->
+        <ellipse cx="60" cy="80" rx="12" ry="8" fill="#c9a878" opacity="0.3"/>
+        <ellipse cx="140" cy="100" rx="8" ry="6" fill="#c9a878" opacity="0.2"/>
+        <ellipse cx="50" cy="140" rx="6" ry="10" fill="#bf9a6a" opacity="0.25"/>
+      </g>
+
+      <!-- 扇柄 (竹制/木制短柄) -->
+      <rect x="92" y="200" width="16" height="55" rx="5" fill="url(#handleGrad)"/>
+      <!-- 柄上缠绳 -->
+      <rect x="90" y="218" width="20" height="3" rx="1" fill="#8b4513" opacity="0.5"/>
+      <rect x="90" y="226" width="20" height="3" rx="1" fill="#8b4513" opacity="0.5"/>
+      <rect x="90" y="234" width="20" height="3" rx="1" fill="#8b4513" opacity="0.5"/>
+      <!-- 柄尾挂绳 -->
+      <line x1="100" y1="255" x2="100" y2="270" stroke="#8b5e34" stroke-width="1.2"/>
+      <circle cx="100" cy="274" r="3" fill="#c0392b" opacity="0.5"/>
+    </svg>
+  </div>
+
+  <!-- 风效 -->
+  <div class="wind-particles" id="windParticles">
+    <div class="wind-particle"></div>
+    <div class="wind-particle"></div>
+    <div class="wind-particle"></div>
+    <div class="wind-particle"></div>
+    <div class="wind-particle"></div>
+  </div>
+
+  <div class="tap-hint">👆 戳我扇风</div>
+</div>
+
+<div class="counter">
+  今日已扇 <b id="count">0</b> 下
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="frost-overlay" id="frost"></div>
+
+<a class="bottom-link" href="javascript:;">
+  <script>document.write(new Date().getFullYear())</script> © 随身蒲扇 · 心静自然凉
+</a>
+
+<script>
+(function(){
+  var fan = document.getElementById('fan');
+  var countEl = document.getElementById('count');
+  var tempEl = document.getElementById('tempNumber');
+  var toast = document.getElementById('toast');
+  var frost = document.getElementById('frost');
+  var particles = document.querySelectorAll('.wind-particle');
+  var hint = document.querySelector('.tap-hint');
+  var wrapper = document.getElementById('fanWrapper');
+
+  var today = new Date().toDateString();
+  var savedDate = localStorage.getItem('fanDate');
+
+  // 每天重置
+  if (savedDate !== today) {
+    localStorage.setItem('fanDate', today);
+    localStorage.setItem('fanCount', '0');
+    localStorage.setItem('fanTemp', '36');
+  }
+
+  var count = parseInt(localStorage.getItem('fanCount') || '0');
+  var temp  = parseInt(localStorage.getItem('fanTemp')  || '36');
+
+  countEl.textContent = count;
+  updateTempDisplay();
+
+  function updateTempDisplay() {
+    tempEl.textContent = temp;
+    tempEl.className = 'temp-number';
+    if (temp <= 0) {
+      tempEl.classList.add('freeze');
+    } else if (temp <= 10) {
+      tempEl.classList.add('cold');
+    } else if (temp <= 22) {
+      tempEl.classList.add('cool');
+    }
+  }
+
+  function showToast(msg, big) {
+    toast.textContent = msg;
+    toast.className = 'toast' + (big ? ' big' : '');
+    toast.classList.add('show');
+    clearTimeout(toast._timeout);
+    toast._timeout = setTimeout(function(){
+      toast.classList.remove('show');
+    }, big ? 3000 : 1200);
+  }
+
+  function blowWind() {
+    particles.forEach(function(p){
+      p.classList.remove('blowing');
+      void p.offsetWidth;
+      p.classList.add('blowing');
+    });
+  }
+
+  function spawnSnowflake() {
+    var s = document.createElement('span');
+    s.className = 'snowflake';
+    s.textContent = ['❄','❅','❆','✦'][Math.floor(Math.random()*4)];
+    s.style.left = Math.random() * 100 + '%';
+    s.style.animationDuration = (2 + Math.random() * 3) + 's';
+    s.style.fontSize = (0.6 + Math.random() * 0.8) + 'rem';
+    document.body.appendChild(s);
+    s.addEventListener('animationend', function(){ s.remove(); });
+  }
+
+  var waving = false;
+  var phrases = [
+    '呼~ 凉快！','好凉快呀 🍃','再来一下！','风来了~','凉爽加倍！',
+    '呼——','凉飕飕~','继续扇！','舒坦！','清风拂面~',
+    '好风！','呼呼呼~','扇得好！','透心凉 🧊'
+  ];
+
+  wrapper.addEventListener('click', function(){
+    if (waving) return;
+    waving = true;
+
+    // 扇动动画
+    fan.classList.remove('waving');
+    void fan.offsetWidth;
+    fan.classList.add('waving');
+
+    // 风效
+    blowWind();
+
+    // 计数
+    count++;
+    countEl.textContent = count;
+    localStorage.setItem('fanCount', count);
+
+    // 降温
+    if (temp > 0) {
+      temp--;
+      tempEl.textContent = temp;
+      updateTempDisplay();
+      localStorage.setItem('fanTemp', temp);
+    }
+
+    // 隐藏提示
+    if (count >= 3) hint.style.opacity = '0';
+
+    // 温度区间提示
+    if (temp === 30) showToast('不热了，继续扇！');
+    else if (temp === 22) showToast('舒适温度达成 ✨');
+    else if (temp === 15) showToast('有点凉了...');
+    else if (temp === 8)  showToast('好冷！🥶');
+    else if (temp === 3)  showToast('快结冰了...');
+    else if (temp === 0) {
+      showToast('太酷啦，今天扇风超过了99%的朋友，奖励疯狂星期四', true);
+      frost.classList.add('show');
+      // 撒雪花
+      for (var i = 0; i < 8; i++) {
+        setTimeout(function(){ spawnSnowflake(); }, i * 150);
+      }
+    } else if (temp > 0 && count % 5 === 0) {
+      showToast(phrases[Math.floor(Math.random() * phrases.length)]);
+    }
+
+    if (count === 1) showToast('🎉 扇起来了！');
+
+    setTimeout(function(){ waving = false; }, 580);
+  });
+
+  fan.addEventListener('click', function(e){
+    e.stopPropagation();
+    wrapper.click();
+  });
+
+})();
+</script>
+</body>
+</html>
