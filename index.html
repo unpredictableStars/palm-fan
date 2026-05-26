@@ -513,6 +513,31 @@
     return { msg: zeroPhrases[pick], isRare: pick === RARE_INDEX };
   }
 
+  // 调试：连点温度 5 次 → 直通疯狂星期四彩蛋
+  var debugClicks = 0;
+  var debugTimer = null;
+  tempEl.parentElement.addEventListener('click', function(e){
+    e.stopPropagation();
+    debugClicks++;
+    clearTimeout(debugTimer);
+    if (debugClicks >= 5) {
+      debugClicks = 0;
+      temp = 0;
+      count = 36;
+      countEl.textContent = count;
+      tempEl.textContent = temp;
+      updateTempDisplay();
+      localStorage.setItem('fanTemp', '0');
+      localStorage.setItem('fanCount', '36');
+      frost.classList.add('show');
+      showToast(zeroPhrases[1], true, 'rare');
+      for (var i = 0; i < 20; i++) {
+        setTimeout(function(){ spawnKfcFood(); }, i * 180);
+      }
+    }
+    debugTimer = setTimeout(function(){ debugClicks = 0; }, 2000);
+  });
+
   wrapper.addEventListener('click', function(){
     if (waving) return;
     waving = true;
