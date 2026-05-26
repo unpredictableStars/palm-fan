@@ -434,7 +434,7 @@
     '好风！','呼呼呼~','扇得好！','透心凉 🧊'
   ];
 
-  // 0°C 彩蛋语料库，每次随机一条
+  // 0°C 彩蛋语料库，优先展示没出现过的
   var zeroPhrases = [
     '恭喜获得「人形冰箱」官方认证 🧊',
     '太酷啦，今天扇风超过了99%的朋友，奖励疯狂星期四 🍗',
@@ -444,14 +444,35 @@
     '这温度，连冰淇淋都开始穿羽绒服了 🍦',
     '恭喜触发隐藏剧情：《冰雪奇缘3：蒲扇传说》 ❄️',
     '检测到您已进入贤者模式，心静自然凉 🧘',
-    '再扇就要穿越回冰河世纪了，猛犸象警告 🦣',
+    '再扇就要穿越回冰河世纪了，猛犸象警告',
     '您的扇风功力已达化境，建议申报非遗 📜',
     'CPU温度：0°C，散热器厂商集体倒闭 😂',
     '冷到手机自动进入省电模式，请用手心焐热 📱',
-    '北极熊看了都摇头：这家太冷了 🐻‍❄️',
+    '北极熊看了都摇头：这家太冷了',
     '欢迎来到《零度之下》，请穿戴潜水服 🤿',
     '已击败全国 100% 的扇子用户，独孤求扇 🏆'
   ];
+
+  // 读取已展示过的语料索引（每天重置）
+  var zeroSeen = JSON.parse(localStorage.getItem('zeroSeen') || '[]');
+  if (savedDate !== today) { zeroSeen = []; localStorage.setItem('zeroSeen', '[]'); }
+
+  function pickZeroPhrase() {
+    // 找出还没展示过的
+    var unseen = [];
+    for (var i = 0; i < zeroPhrases.length; i++) {
+      if (zeroSeen.indexOf(i) === -1) unseen.push(i);
+    }
+    // 全展示过了就重置
+    if (unseen.length === 0) {
+      zeroSeen = [];
+      unseen = zeroPhrases.map(function(_,i){ return i; });
+    }
+    var pick = unseen[Math.floor(Math.random() * unseen.length)];
+    zeroSeen.push(pick);
+    localStorage.setItem('zeroSeen', JSON.stringify(zeroSeen));
+    return zeroPhrases[pick];
+  }
 
   wrapper.addEventListener('click', function(){
     if (waving) return;
@@ -488,7 +509,7 @@
     else if (temp === 8)  showToast('好冷！🥶');
     else if (temp === 3)  showToast('快结冰了...');
     else if (temp === 0) {
-      var zMsg = zeroPhrases[Math.floor(Math.random() * zeroPhrases.length)];
+      var zMsg = pickZeroPhrase();
       showToast(zMsg, true);
       frost.classList.add('show');
       // 撒雪花
