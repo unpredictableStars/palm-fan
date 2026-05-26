@@ -230,6 +230,18 @@
     0%   { opacity:0.8; transform: translateY(0) rotate(0deg); }
     100% { opacity:0;   transform: translateY(100vh) rotate(360deg); }
   }
+
+  /* 疯狂星期四专属动画 */
+  @keyframes kfcFall {
+    0%   { opacity:1; transform: translateY(0) rotate(0deg) scale(1); }
+    60%  { opacity:1; transform: translateY(60vh) rotate(180deg) scale(1.1); }
+    100% { opacity:0; transform: translateY(100vh) rotate(360deg) scale(0.5); }
+  }
+
+  .toast.rare {
+    background: linear-gradient(135deg, #f97316, #ef4444, #dc2626);
+    box-shadow: 0 8px 32px rgba(249,115,22,0.5);
+  }
 </style>
 </head>
 <body>
@@ -398,9 +410,9 @@
     }
   }
 
-  function showToast(msg, big) {
+  function showToast(msg, big, extraClass) {
     toast.textContent = msg;
-    toast.className = 'toast' + (big ? ' big' : '');
+    toast.className = 'toast' + (big ? ' big' : '') + (extraClass ? ' ' + extraClass : '');
     toast.classList.add('show');
     clearTimeout(toast._timeout);
     toast._timeout = setTimeout(function(){
@@ -427,6 +439,24 @@
     s.addEventListener('animationend', function(){ s.remove(); });
   }
 
+  // 疯狂星期四专属：炸鸡汉堡飘落
+  function spawnKfcFood() {
+    var f = document.createElement('span');
+    f.className = 'kfc-food';
+    var foods = ['🍗','🍔','🍟','🍗','🍔','🍟','🥤','🍗'];
+    f.textContent = foods[Math.floor(Math.random() * foods.length)];
+    f.style.position = 'fixed';
+    f.style.top = '-30px';
+    f.style.left = Math.random() * 100 + '%';
+    f.style.fontSize = (1.2 + Math.random() * 1.6) + 'rem';
+    f.style.pointerEvents = 'none';
+    f.style.zIndex = '999';
+    f.style.animation = 'kfcFall ' + (2.5 + Math.random() * 3) + 's ease-in forwards';
+    f.style.animationDelay = Math.random() * 0.5 + 's';
+    document.body.appendChild(f);
+    f.addEventListener('animationend', function(){ f.remove(); });
+  }
+
   var waving = false;
   var phrases = [
     '呼~ 凉快！','好凉快呀 🍃','再来一下！','风来了~','凉爽加倍！',
@@ -437,7 +467,7 @@
   // 0°C 彩蛋语料库，优先展示没出现过的
   var zeroPhrases = [
     '恭喜获得「人形冰箱」官方认证 🧊',
-    '太酷啦，今天扇风超过了99%的朋友，奖励疯狂星期四 🍗',
+    '太酷啦，今天扇风超过了99%的朋友，奖励疯狂星期四 🍗',  // 索引1，稀有彩蛋
     '绝对零度已达成，企鹅移民申请已提交 🐧',
     '你的蒲扇已被收录进《冷兵器排行榜》第一名 🥇',
     '南极科考站发来贺电：请停止制冷 🏔️',
@@ -452,6 +482,7 @@
     '欢迎来到《零度之下》，请穿戴潜水服 🤿',
     '已击败全国 100% 的扇子用户，独孤求扇 🏆'
   ];
+  var RARE_INDEX = 1; // 疯狂星期四的索引，概率减半 + 专属动画
 
   // 读取已展示过的语料索引（每天重置）
   var zeroSeen = JSON.parse(localStorage.getItem('zeroSeen') || '[]');
@@ -468,10 +499,18 @@
       zeroSeen = [];
       unseen = zeroPhrases.map(function(_,i){ return i; });
     }
-    var pick = unseen[Math.floor(Math.random() * unseen.length)];
+
+    // 疯狂星期四语料概率减半：50% 几率跳过它
+    var rareInPool = unseen.indexOf(RARE_INDEX) !== -1;
+    var pool = unseen;
+    if (rareInPool && Math.random() < 0.5 && unseen.length > 1) {
+      pool = unseen.filter(function(idx){ return idx !== RARE_INDEX; });
+    }
+
+    var pick = pool[Math.floor(Math.random() * pool.length)];
     zeroSeen.push(pick);
     localStorage.setItem('zeroSeen', JSON.stringify(zeroSeen));
-    return zeroPhrases[pick];
+    return { msg: zeroPhrases[pick], isRare: pick === RARE_INDEX };
   }
 
   wrapper.addEventListener('click', function(){
@@ -509,12 +548,21 @@
     else if (temp === 8)  showToast('好冷！🥶');
     else if (temp === 3)  showToast('快结冰了...');
     else if (temp === 0) {
-      var zMsg = pickZeroPhrase();
-      showToast(zMsg, true);
-      frost.classList.add('show');
-      // 撒雪花
-      for (var i = 0; i < 8; i++) {
-        setTimeout(function(){ spawnSnowflake(); }, i * 150);
+      var zPick = pickZeroPhrase();
+      var zMsg = zPick.msg;
+      if (zPick.isRare) {
+        showToast(zMsg, true, 'rare');
+        // 炸鸡汉堡雨！
+        for (var i = 0; i < 20; i++) {
+          setTimeout(function(){ spawnKfcFood(); }, i * 180);
+        }
+      } else {
+        showToast(zMsg, true);
+        frost.classList.add('show');
+        // 撒雪花
+        for (var i = 0; i < 8; i++) {
+          setTimeout(function(){ spawnSnowflake(); }, i * 150);
+        }
       }
     } else if (temp > 0 && count % 5 === 0) {
       showToast(phrases[Math.floor(Math.random() * phrases.length)]);
